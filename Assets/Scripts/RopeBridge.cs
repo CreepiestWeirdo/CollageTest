@@ -1,23 +1,23 @@
-using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Rope : MonoBehaviour
+public class RopeBridge : MonoBehaviour
 {
+    public Transform StartPoint;
+    public Transform EndPoint;
+
     private LineRenderer lineRenderer;
     private List<RopeSegment> ropeSegments = new List<RopeSegment>();
     private float ropeSegLen = 0.25f;
     private int segmentLength = 35;
     private float lineWidth = 0.1f;
-    [SerializeField] private Transform startPoint;
-    [SerializeField] private Transform endPoint;
 
-    // Start is called before the first frame update
+    // Use this for initialization
     void Start()
     {
         this.lineRenderer = this.GetComponent<LineRenderer>();
-        Vector3 ropeStartPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Vector3 ropeStartPoint = StartPoint.position;
 
         for (int i = 0; i < segmentLength; i++)
         {
@@ -39,9 +39,10 @@ public class Rope : MonoBehaviour
 
     private void Simulate()
     {
-        Vector2 forceGravity = new Vector2 (0f, -1.5f);
+        // SIMULATION
+        Vector2 forceGravity = new Vector2(0f, -1f);
 
-        for (int i = 1;  i < this.segmentLength; i++)
+        for (int i = 1; i < this.segmentLength; i++)
         {
             RopeSegment firstSegment = this.ropeSegments[i];
             Vector2 velocity = firstSegment.posNow - firstSegment.posOld;
@@ -51,7 +52,8 @@ public class Rope : MonoBehaviour
             this.ropeSegments[i] = firstSegment;
         }
 
-        for (int i =0; i < 50; i++)
+        //CONSTRAINTS
+        for (int i = 0; i < 50; i++)
         {
             this.ApplyConstraint();
         }
@@ -59,15 +61,18 @@ public class Rope : MonoBehaviour
 
     private void ApplyConstraint()
     {
+        //Constrant to First Point 
         RopeSegment firstSegment = this.ropeSegments[0];
-        firstSegment.posNow = this.startPoint.position;
+        firstSegment.posNow = this.StartPoint.position;
         this.ropeSegments[0] = firstSegment;
 
-        RopeSegment endSegment = this.ropeSegments[this.segmentLength - 1];
-        endSegment.posNow = this.endPoint.position;
-        this.ropeSegments[this.segmentLength -1] = endSegment;
 
-        for(int i = 0; i < this.segmentLength - 1; i++)
+        //Constrant to Second Point 
+        RopeSegment endSegment = this.ropeSegments[this.ropeSegments.Count - 1];
+        endSegment.posNow = this.EndPoint.position;
+        this.ropeSegments[this.ropeSegments.Count - 1] = endSegment;
+
+        for (int i = 0; i < this.segmentLength - 1; i++)
         {
             RopeSegment firstSeg = this.ropeSegments[i];
             RopeSegment secondSeg = this.ropeSegments[i + 1];
@@ -76,22 +81,22 @@ public class Rope : MonoBehaviour
             float error = Mathf.Abs(dist - this.ropeSegLen);
             Vector2 changeDir = Vector2.zero;
 
-            if(dist > ropeSegLen) 
+            if (dist > ropeSegLen)
             {
                 changeDir = (firstSeg.posNow - secondSeg.posNow).normalized;
             }
             else if (dist < ropeSegLen)
             {
-                changeDir = (secondSeg.posNow -  firstSeg.posNow).normalized;
+                changeDir = (secondSeg.posNow - firstSeg.posNow).normalized;
             }
 
             Vector2 changeAmount = changeDir * error;
-            if(i !=0)
+            if (i != 0)
             {
-                firstSeg.posNow = changeAmount * 0.5f;
+                firstSeg.posNow -= changeAmount * 0.5f;
                 this.ropeSegments[i] = firstSeg;
-                secondSeg.posNow = changeAmount * 0.5f;
-                this.ropeSegments[i+1] = secondSeg;
+                secondSeg.posNow += changeAmount * 0.5f;
+                this.ropeSegments[i + 1] = secondSeg;
             }
             else
             {
@@ -107,11 +112,12 @@ public class Rope : MonoBehaviour
         lineRenderer.startWidth = lineWidth;
         lineRenderer.endWidth = lineWidth;
 
-        Vector3[] ropePositions = new Vector3[segmentLength];
+        Vector3[] ropePositions = new Vector3[this.segmentLength];
         for (int i = 0; i < this.segmentLength; i++)
         {
             ropePositions[i] = this.ropeSegments[i].posNow;
         }
+
         lineRenderer.positionCount = ropePositions.Length;
         lineRenderer.SetPositions(ropePositions);
     }
@@ -121,10 +127,10 @@ public class Rope : MonoBehaviour
         public Vector2 posNow;
         public Vector2 posOld;
 
-        public RopeSegment(Vector2 position)
+        public RopeSegment(Vector2 pos)
         {
-            this.posNow = position;
-            this.posOld = position; 
+            this.posNow = pos;
+            this.posOld = pos;
         }
     }
 }
